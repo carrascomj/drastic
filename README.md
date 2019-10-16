@@ -39,4 +39,4 @@ In this section, I will summarise the things I have learnt.
 References
 ---------
 
-<a name="amin2019">1</a>: Amin, M. R., Yurovsky, A., Tian, Y., & Skiena, S. (2018). DeepAnnotator. The 2018 ACM International Conference
+[<a name="amin2019">1</a>] Amin, M. R., Yurovsky, A., Tian, Y., & Skiena, S. (2018). DeepAnnotator. The 2018 ACM International Conference
