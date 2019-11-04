@@ -7,7 +7,7 @@ from numpy.random import randint, random
 
 
 def get_feature_ranges(feat_table, feature="gene"):
-    """ Get all ranges that defines genes/proteins (`feature`) in a genome
+    """ Get all ranges that define genes/proteins (`feature`) in a genome
 
     Parameters
     ----------
@@ -28,11 +28,43 @@ def get_feature_ranges(feat_table, feature="gene"):
     )
 
 
+def get_negative_ranges(feat_ranges):
+    """ Starting from a set of ranges that defines classified input, get the
+    complementary ranges to sample negative observations
+
+    Parameters
+    ----------
+    feat_ranges : numpy.array
+        each position defines a gene/protein, a numpy array of length 2 (start and end)
+
+    Returns
+    -------
+    numpy.array
+        each position defines a negative observation, a numpy array of length 2 (start and end)
+    """
+    negative_ranges = []
+    # edge case: the first gene starts at position 0
+    if feat_ranges[0, 0] == 0:
+        lb, ub = feat_ranges[0, 1] + 1, feat_ranges[1, 0] - 1
+        start = 1
+    else:
+        lb, ub = 0, feat_ranges[0, 0] - 1
+        start = 0
+    for i in range(start, len(feat_ranges) - 1):
+        # print(f"ub -> {ub}\tfeat_ranges[i,0] -> {feat_ranges[i,0]}\ti -> {i}")
+        if ub < feat_ranges[i, 0]:
+            # just update lower bound and add range if genes don't overlap
+            negative_ranges.append(np.array([lb, ub]))
+            lb = feat_ranges[i, 1] + 1
+        ub = feat_ranges[i + 1, 0] - 1
+    return np.array(negative_ranges)
+
+
 def _tweak_range(feat_range, min_fill, max_fill, gene_percentage, p):
     """
     Expand a range
     """
-    new_range = np.zeros(2)
+    new_range = np.zeros(2, dtype=np.int32)
     size = feat_range[1] - feat_range[0]
     expand = lambda: randint(min_fill, max_fill)
     chop = lambda: randint(0, (1 - gene_percentage) * size)
@@ -89,8 +121,11 @@ if __name__ == "__main__":
         "../../data/GCA_000008525.1_ASM852v1_feature_table.tsv", sep="\t"
     )
     gene_ranges = get_feature_ranges(df_test)
+    negative_ranges = get_negative_ranges(gene_ranges)
+    print(len(negative_ranges))
     tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
     for i in range(5):
         print(
             f"Actual gene -> {gene_ranges[i]}\nTweaked gene -> {tweaked_gene_ranges[i]}\n"
+            f"Negative observation -> {negative_ranges[i]}\n"
         )
