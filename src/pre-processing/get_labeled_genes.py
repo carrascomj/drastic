@@ -80,7 +80,7 @@ def tweak_ranges(
     if tweaked[0, 0] < 0:
         tweaked[0, 0] = 0
     if tweaked[-1, -1] > genome_length:
-        tweaked[-1, -1] = 0
+        tweaked[-1, -1] = genome_length
     return tweaked
 
 
