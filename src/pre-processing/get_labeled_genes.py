@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 
-from numpy.random import randint, random
+from numpy.random import randint, random, choice
+from warnings import warn
 
 
 def get_feature_ranges(feat_table, feature="gene"):
@@ -60,10 +61,51 @@ def get_negative_ranges(feat_ranges):
     return np.array(negative_ranges)
 
 
+def _bootstrap(input_arr):
+    """ Take *N* samples with replacement of `input_arr`, where *N* is the initial
+    length of `input_arr`.
+
+    Parameters
+    ----------
+    input_arr : numpy.array
+
+    Returns
+    -------
+    numpy.array
+
+    """
+    n = len(input_arr)
+    return input_arr[choice(n, size=n, replace=True)]
+
+
+def _sample_in_range(feat_range, min_size, max_size):
+    """ Take a subset of a range defined in `feat_range` """
+    size = feat_range[1] - feat_range[0]
+
+    if min_size >= size:
+        warn(
+            "min_size parameter ("
+            + str(min_size)
+            + ") is bigger or equal to the size of"
+            "input range" + str(feat_range) + ". Ignoring that range..."
+        )
+        return feat_range
+
+    left = randint(feat_range[0], feat_range[1] - min_size)
+    right = randint(left + min_size, min(left + max_size, feat_range[1]))
+    return np.array([left, right])
+
+
+def sample_negatives(feat_ranges, min_size=50, max_size=1000):
+    """ Take negative example ranges of some defined length """
+    sampled = np.array(list(filter(lambda x: x[1] - x[0] >= min_size, feat_ranges)))
+    sampled = [_sample_in_range(r, min_size, max_size) for r in _bootstrap(sampled)]
+    # sort just to check output in tests
+    return np.array(sorted(sampled, key=lambda x: x[0]))
+
+
 def _tweak_range(feat_range, min_fill, max_fill, gene_percentage, p):
-    """
-    Expand a range
-    """
+    """ Expand a range """
     new_range = np.zeros(2, dtype=np.int32)
     size = feat_range[1] - feat_range[0]
     expand = lambda: randint(min_fill, max_fill)
@@ -122,10 +164,11 @@ if __name__ == "__main__":
     )
     gene_ranges = get_feature_ranges(df_test)
     negative_ranges = get_negative_ranges(gene_ranges)
-    print(len(negative_ranges))
+    sampled_negatives = sample_negatives(negative_ranges)
     tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
     for i in range(5):
         print(
             f"Actual gene -> {gene_ranges[i]}\nTweaked gene -> {tweaked_gene_ranges[i]}\n"
             f"Negative observation -> {negative_ranges[i]}\n"
+            f"Sampled negative -> {sampled_negatives[i]}\n"
         )
