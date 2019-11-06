@@ -6,7 +6,7 @@ Deep Rapid Annotation using Submodels Training in Cells
 <!--ts-->
    * [What is drastic?](#what-is-drastic)
    * [Getting started](#getting-started)
-   * [Features](#eatures)
+   * [Features](#features)
       * [Further in the horizon](#further-in-the-horizon)
    * [Command Line Interface](#command-line-interface)
    * [Schema of the model](#schema-of-the-model)
