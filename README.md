@@ -17,7 +17,7 @@ Deep Rapid Annotation using Submodels Training in Cells
 ## What is drastic?
 
 Drastic provides a Deep Learning model to perform annotation of a prokaryotic genome.
-This project is highly inspired DeepAnnotator [[1]](#amin2019) (repository [here](https://github.com/ruhulsbu/DeepAnnotator)).
+This project is highly inspired by DeepAnnotator [[1]](#amin2019) (repository [here](https://github.com/ruhulsbu/DeepAnnotator)).
 
 ## Getting started
 
