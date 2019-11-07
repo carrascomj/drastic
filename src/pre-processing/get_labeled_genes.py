@@ -125,6 +125,37 @@ def _tweak_range(feat_range, min_fill, max_fill, gene_percentage, p):
     return new_range
 
 
+def _portion_of_gene(feat_range, partial):
+    range_in = max(partial[0], feat_range[0]), min(partial[1], feat_range[1])
+    size = feat_range[1] - feat_range[0]
+    size_partial = partial[1] - partial[0]
+    return size_partial / size
+
+
+def _tweak_partial(feat_range, max_fill, gene_percentage, gene_max, p):
+    """
+    Try to get a partial gene: contains between `gene-percentage` (>50%) abd `gene_max` (<90%) of
+    a gene.
+    
+    The process is kind of dirty, it tries to get it randomly by tweaking a gene range.
+    It's still really fast but if we need to speed up performance, I'll rewrite in a 
+    proper, more boring and less random way.
+    """
+    partial = _tweak_range(
+        feat_range, min_fill=0, max_fill=max_fill, gene_percentage=gene_percentage, p=p
+    )
+    while _portion_of_gene(feat_range, partial) > gene_max:
+        # partial contain less than the gene_max percentage of the gene
+        partial = _tweak_range(
+            feat_range,
+            min_fill=0,
+            max_fill=max_fill,
+            gene_percentage=gene_percentage,
+            p=p,
+        )
+    return partial
+
+
 def tweak_ranges(
     feat_ranges, genome_length, min_fill=5, max_fill=200, gene_percentage=0.9, p=0.9
 ):
@@ -135,6 +166,14 @@ def tweak_ranges(
     ----------
     feat_ranges : numpy.array
         each position defines a gene/protein, a numpy array of length 2 (start and end)
+    genome_lenght: int
+        length of the genome under processing
+    min_fill: int
+        min fill to add to the feature range
+    max_fill: int
+        max fill to add to the feature range
+    gene_percentage: float
+        minimum percentage of the original range that must preserved.
     p: float
         probability of a gene side being expanded. 1-p is the probability for the
         gene being squezeed.
@@ -144,6 +183,13 @@ def tweak_ranges(
     numpy.array
         each position defines a gene/protein, a numpy array of length 2 (start and end)
     """
+    # correct inconsistent user input
+    min_fill, max_fill = int(min_fill), int(max_fill)
+    if 0 >= gene_percentage < 1:
+        raise ValueError(
+            f"Invalid gene_percentage parameter ({gene_percentage}), must be between 0 and 1"
+        )
+
     tweaked = np.array(
         [
             _tweak_range(rang, min_fill, max_fill, gene_percentage, p)
@@ -158,17 +204,71 @@ def tweak_ranges(
     return tweaked
 
 
+def get_partial_ranges(
+    feat_ranges, genome_length, max_fill=200, gene_min=0.5, gene_max=0.9, p=0.5
+):
+    """ Contract and expand each feature range so it contains >`gene_min` and <`gene_max`
+    of the actual feature range. It's pretty dirty but works fast.
+    
+    Parameters
+    ----------
+    feat_ranges : numpy.array
+        each position defines a gene/protein, a numpy array of length 2 (start and end)
+    genome_lenght: int
+        length of the genome under processing
+    max_fill: int
+        max fill to add to the feature range
+    gene_min: float
+        minimum percentage of the original range that must preserved.
+    gene_max: float
+        maximum percentage of the original range that must preserved.
+    p: float
+        probability of a gene side being expanded. 1-p is the probability for the
+        gene being squezeed.
+
+    Returns
+    ------
+    numpy.array
+        each position defines a gene/protein, a numpy array of length 2 (start and end)
+    """
+    # correct inconsistent user input
+    max_fill = int(max_fill)
+    if 0 >= gene_min < 1:
+        raise ValueError(
+            f"Invalid gene_min parameter ({gene_min}), must be between 0 and 1"
+        )
+    if 0 >= gene_max < 1:
+        raise ValueError(
+            f"Invalid gene_max parameter ({gene_max}), must be between 0 and 1"
+        )
+
+    tweaked = np.array(
+        [_tweak_partial(rang, max_fill, gene_min, gene_max, p) for rang in feat_ranges]
+    )
+    # adjust edges to the genome
+    if tweaked[0, 0] < 0:
+        tweaked[0, 0] = 0
+    if tweaked[-1, -1] > genome_length:
+        tweaked[-1, -1] = genome_length
+    return tweaked
+
+
 if __name__ == "__main__":
     df_test = pd.read_csv(
         "../../data/GCA_000008525.1_ASM852v1_feature_table.tsv", sep="\t"
     )
+    # Test genes
     gene_ranges = get_feature_ranges(df_test)
+    tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
+    # Test negative examples
     negative_ranges = get_negative_ranges(gene_ranges)
     sampled_negatives = sample_negatives(negative_ranges)
-    tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
+    # Test partial genes
+    partial_ranges = get_partial_ranges(gene_ranges, genome_length=60000)
     for i in range(5):
         print(
             f"Actual gene -> {gene_ranges[i]}\nTweaked gene -> {tweaked_gene_ranges[i]}\n"
             f"Negative observation -> {negative_ranges[i]}\n"
             f"Sampled negative -> {sampled_negatives[i]}\n"
+            f"Partial gene -> {partial_ranges[i]}\n"
         )
