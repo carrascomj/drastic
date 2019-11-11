@@ -55,8 +55,8 @@ def map_full_genomes(
         2 columns: sequence and label
     """
     feat = map_ranges_2_genes(genome, positive, labels[0])
-    no_feat = map_ranges_2_genes(genome, negative, label[1])
-    partial = map_ranges_2_genes(genome, partial, label[2])
+    no_feat = map_ranges_2_genes(genome, negative, labels[1])
+    partial = map_ranges_2_genes(genome, partial, labels[2])
     return pd.concat([feat, no_feat, partial])
 
 
