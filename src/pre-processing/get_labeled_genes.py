@@ -6,6 +6,8 @@ import pandas as pd
 from numpy.random import randint, random, choice
 from warnings import warn
 
+# 1. Get actual ranges
+
 
 def get_feature_ranges(feat_table, feature="gene"):
     """ Get all ranges that define genes/proteins (`feature`) in a genome
@@ -61,6 +63,9 @@ def get_negative_ranges(feat_ranges):
     return np.array(negative_ranges)
 
 
+# 2. Sampling of negative examples.
+
+
 def _bootstrap(input_arr):
     """ Take *N* samples with replacement of `input_arr`, where *N* is the initial
     length of `input_arr`.
@@ -102,6 +107,9 @@ def sample_negatives(feat_ranges, min_size=50, max_size=1000):
     sampled = [_sample_in_range(r, min_size, max_size) for r in _bootstrap(sampled)]
     # sort just to check output in tests
     return np.array(sorted(sampled, key=lambda x: x[0]))
+
+
+# 3. Tweak functions
 
 
 def _tweak_range(feat_range, min_fill, max_fill, gene_percentage, p):
