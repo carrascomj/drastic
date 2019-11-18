@@ -11,10 +11,17 @@ from get_labeled_genes import (
     sample_negatives,
     get_partial_ranges,
 )
-from remove_small_genes import remove_small_genes
+from remove_small_genes import remove_small_genes, remove_big_genes
 
 
-def pre_process(genome_file, feat_file, min_gene_size=200, sep="\t", out_file=False):
+def pre_process(
+    genome_file,
+    feat_file,
+    min_gene_size=200,
+    max_gene_size=2000,
+    sep="\t",
+    out_file=False,
+):
     """ Master function
     
     Accepts a `genome_file` FASTA and a `feat_file` TSV and convers it to a pandas
@@ -55,6 +62,7 @@ def pre_process(genome_file, feat_file, min_gene_size=200, sep="\t", out_file=Fa
     # 2. STANDARDIZE DATA
     # TODO: remove also big genes
     df_feat = remove_small_genes(df_feat, min_gene_size)
+    df_feat = remove_big_genes(df_feat, max_gene_size)
 
     # 3. GET RANGES OF FEATURES
     # Test genes
