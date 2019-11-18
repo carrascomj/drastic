@@ -261,22 +261,86 @@ def get_partial_ranges(
     return tweaked
 
 
+def _get_windows(feat_range, window_size=50, num_windows=3):
+    """ Get `num_windows` windows of lenght `window_size` that are subsets of `feat_range`
+    
+    Parameters
+    ----------
+    feat_range : numpy.array
+        a numpy array of length 2 (start and end)
+    window_size: int
+        length of the genome under processing
+    num_windows: int
+        number of subsets of the range to retrieve
+        
+    Returns
+    -------
+    list of `num_windows` length of np.arrays (feat_range)
+    """
+    start, end = feat_range
+    size = end - start
+    if window_size > size:
+        warn(
+            "size_windows parameter (" + str(window_size) + ") is bigger to the size of"
+            "input range" + str(feat_range) + ". Ignoring that range..."
+        )
+        return [False]
+    # avoid overlapping window but try to exploit all the data
+    while (size / window_size) < num_windows:
+        num_windows -= 1
+    start_points = np.ndarray.astype(np.linspace(start, end, num_windows), "int64")
+    # prepare all windows but the last one
+    windows = [np.array([point, point + window_size]) for point in start_points[:-1]]
+    # we want the last window to be (N - window_size):N
+    N = start_points[-1]
+    windows.append(np.array([N - window_size, N]))
+    return windows
+
+
+def extract_windows(feat_ranges, window_size=50, num_windows=3):
+    """ Get `num_windows` windows of lenght `window_size` that are subsets of `feat_range`
+    
+    Parameters
+    ----------
+    feat_ranges : numpy.array
+        each position defines a gene/protein, a numpy array of length 2 (start and end)
+    window_size: int
+        length of the genome under processing
+    num_windows: int
+        number of subsets of the range to retrieve
+        
+    Returns
+    -------
+    np.arrays of `num_windows` length of np.arrays (feat_range)
+    """
+    # overcome assymetric ranges stuff
+    window_size -= 1
+    windows = []
+    for rang in feat_ranges:
+        windows += _get_windows(rang, window_size, num_windows)
+    # filter all cases that the range size was less that window_size (returned False)
+    return list(filter(lambda x: x is not False, windows))
+
+
 if __name__ == "__main__":
     df_test = pd.read_csv(
         "../../data/GCA_000008525.1_ASM852v1_feature_table.tsv", sep="\t"
     )
     # Test genes
     gene_ranges = get_feature_ranges(df_test)
-    tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
+    # tweaked_gene_ranges = tweak_ranges(gene_ranges, genome_length=60000)
     # Test negative examples
     negative_ranges = get_negative_ranges(gene_ranges)
-    sampled_negatives = sample_negatives(negative_ranges)
+    # sampled_negatives = sample_negatives(negative_ranges)
     # Test partial genes
     partial_ranges = get_partial_ranges(gene_ranges, genome_length=60000)
+    # get the windows
+    windowed_gene_ranges = extract_windows(gene_ranges)
+    negative_ranges = extract_windows(negative_ranges)
+    partial_ranges = extract_windows(partial_ranges)
     for i in range(5):
         print(
-            f"Actual gene -> {gene_ranges[i]}\nTweaked gene -> {tweaked_gene_ranges[i]}\n"
+            f"Actual gene -> {gene_ranges[i]}\nWindowed gene -> {windowed_gene_ranges[i]}\n"
             f"Negative observation -> {negative_ranges[i]}\n"
-            f"Sampled negative -> {sampled_negatives[i]}\n"
             f"Partial gene -> {partial_ranges[i]}\n"
         )
