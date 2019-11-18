@@ -25,13 +25,26 @@ def remove_small_genes(annotations, min_gene_size):
 
     # Remove all genes smaller than minimum
     annotations = annotations.drop(annotations.index[genes_to_remove])
-    return annotations
+    return annotations.reset_index(drop=True)
 
 
 def remove_big_genes(annotations, max_gene_size):
 
-    df = annotations[(annotations["end"] - annotations["start"]) < max_gene_size]
-    return df
+    genes_to_remove = []
+
+    # Iterate over rows
+    for index, row in annotations.iterrows():
+
+        # Find gene length
+        gene_length = row["end"] - row["start"]
+
+        # Check if smaller than minimum length
+        if gene_length >= max_gene_size:
+            genes_to_remove.append(index)
+
+    # Remove all genes smaller than minimum
+    annotations = annotations.drop(annotations.index[genes_to_remove])
+    return annotations.reset_index(drop=True)
 
 
 if __name__ == "__main__":

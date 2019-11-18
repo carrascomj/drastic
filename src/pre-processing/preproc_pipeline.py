@@ -90,3 +90,4 @@ if __name__ == "__main__":
         f"\nRESULT OF TEST\n{len('RESULT OF TEST')*'='}\n{df.head(20)}\n"
         f"colums -> {list(df.columns)}"
     )
+    print(df.sequence.apply(lambda x: len(x)).max())
