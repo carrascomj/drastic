@@ -62,7 +62,6 @@ def pre_process(
     # 2. STANDARDIZE DATA
     # TODO: remove also big genes
     df_feat = remove_small_genes(df_feat, min_gene_size)
-    df_feat = remove_big_genes(df_feat, max_gene_size)
 
     # 3. GET RANGES OF FEATURES
     # Test genes
@@ -75,7 +74,10 @@ def pre_process(
     partial = get_partial_ranges(gene_ranges, genome_length=genome_length)
 
     # 4. BUILD THE PRE-PROCESSED DATAFRAME
-    df_out = build_padded_seqs(map_full_genomes(genome, positive, negative, partial))
+    df_out = map_full_genomes(genome, positive, negative, partial)
+    df_out = df_out[df_out.sequence.apply(lambda x: len(x)) < max_gene_size]
+    df_out = build_padded_seqs(df_out)
+
     if out_file:
         df_out.to_csv(out_file, sep=sep, index=False)
     return df_out
