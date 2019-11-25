@@ -25,7 +25,10 @@ def get_feature_ranges(feat_table, feature="gene"):
         each position defines a gene/protein, a numpy array of length 2 (start and end)
     """
     return (
-        feat_table[feat_table["# feature"] == feature]
+        feat_table[
+            (feat_table["# feature"] == feature)
+            & (feat_table["seq_type"] == "chromosome")
+        ]
         .loc[:, ["start", "end"]]
         .to_numpy()
     )
