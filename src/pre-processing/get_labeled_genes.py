@@ -34,6 +34,29 @@ def get_feature_ranges(feat_table, feature="gene"):
     )
 
 
+def filter_ranges(feat_ranges, first=0, last=None):
+    """Filter `feat_ranges` that are between `first` and `last`.
+    
+    After that, the ranges are rescaled by `first` to be comparable with a 
+    portion of a genome defined by `first` and `last`.
+
+    Parameters
+    ----------
+    feat_ranges : numpy.array
+        each position defines a gene/protein, a numpy array of length 2 (start and end)
+
+    """
+    if last is None:
+        # unbounded by last position
+        last = feat_ranges[-1][-1]
+    # filter ranges not in the subset [first, last]
+    filtered = np.array(
+        [rang for rang in feat_ranges if rang[0] >= first and rang[1] <= last]
+    )
+    # rescale
+    return filtered - first
+
+
 def get_negative_ranges(feat_ranges):
     """ Starting from a set of ranges that defines classified input, get the
     complementary ranges to sample negative observations

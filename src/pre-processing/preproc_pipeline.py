@@ -46,6 +46,7 @@ def pre_process(
     -------
     pandas.DataFrame
         final dataframe to use in training/testing
+
     """
     # 0. CONSISTENCY OF INPUT
     min_gene_size = int(min_gene_size)
@@ -93,8 +94,24 @@ def window_pipeline(
     max_gene_size=2000,
     sep="\t",
     out_file=False,
+    by=None,
 ):
-    """ Preprocessing pipelines that take equidistant windows in the features ranges """
+    """Preprocessing pipeline that take equidistant windows in `feat_file`.
+    
+    Parameters
+    ----------
+    (...)
+    by: tuple (length 2)
+        the first element corresponds to the first position in `genome_file`
+        with respect to the real genome in `feat_file`. Only used when portions
+        of a genome are provided.
+
+    Returns
+    -------
+    pandas.DataFrame
+        final dataframe to use in training/testing
+
+    """
     # 0. CONSISTENCY OF INPUT
     window_size = int(window_size)
     num_windows = int(num_windows)
@@ -116,6 +133,8 @@ def window_pipeline(
     # 3. GET RANGES OF FEATURES
     # Test genes
     gene_ranges = get_feature_ranges(df_feat)
+    if by is not None:
+        gene_ranges = filter_ranges(gene_ranges, first=by[0], last=by[1])
     positive = extract_windows(gene_ranges, window_size, num_windows)
     # Test negative examples
     negative_ranges = get_negative_ranges(gene_ranges)
@@ -136,7 +155,8 @@ if __name__ == "__main__":
     feature_table = "../../data/GCA_000008865.2_ASM886v2_feature_table.tsv"
     df = window_pipeline(genome, feature_table)
     print(
-        f"\nRESULT OF TEST\n{len('RESULT OF TEST')*'='}\n{df.head(20)}\n"
-        f"colums -> {list(df.columns)}"
+        f"\nRESULT OF TEST\n{len('RESULT OF TEST')*'='}\n{df.head(10)}\n"
+        f"\ncolums -> {list(df.columns)}"
+        f"\nlabels -> {pd.unique(df.label)}"
     )
     assert not df.sequence.apply(lambda x: len(x) != 50).any()
