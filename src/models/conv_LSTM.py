@@ -67,6 +67,11 @@ class convLSTM(nn.Module):
         return output
 
 
+def criterion():
+    """Just return the criterion we used for training."""
+    return nn.CrossEntropyLoss()
+
+
 if __name__ == "__main__":
     # just see if it can be instantiated
     rnn = convLSTM(4, 4, 4, 4, 4)
