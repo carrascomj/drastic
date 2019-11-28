@@ -19,4 +19,12 @@ def lowpass_filter(data, cutoff, fs, order):
     return y
     
 def cut_filter(output, cutoff):
-    return [i >= 0.5 for i in output]
+    return [i >= cutoff for i in output]
+    
+def bin_acc_filter(preds, y):
+    """Binary accuracy for filtered output"""
+    correct = 0
+    for idx, pred in enumerate(preds):
+        if pred == y[idx]:
+            correct += 1  
+    return correct/len(preds)
