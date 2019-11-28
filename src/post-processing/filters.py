@@ -19,4 +19,4 @@ def lowpass_filter(data, cutoff, fs, order):
     return y
     
 def cut_filter(output, cutoff):
-    return [i >= 0.5 for i in filtered_output]
+    return [i >= 0.5 for i in output]
