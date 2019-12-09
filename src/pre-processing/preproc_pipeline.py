@@ -3,7 +3,7 @@
 import pandas as pd
 import pyfastx
 
-from build_dataset import build_padded_seqs, map_full_genomes
+from build_dataset import build_padded_seqs, map_full_genomes, classify_genes
 from get_labeled_genes import (
     get_feature_ranges,
     tweak_ranges,
@@ -146,6 +146,7 @@ def window_pipeline(
 
     # 4. BUILD THE PRE-PROCESSED DATAFRAME
     df_out = map_full_genomes(genome, positive, negative, partial)
+    df_out = classify_genes(df_out, df_feat, feature="gene")
 
     return df_out
 
@@ -159,5 +160,6 @@ if __name__ == "__main__":
         f"\nRESULT OF TEST\n{len('RESULT OF TEST')*'='}\n{df.head(10)}\n"
         f"\ncolums -> {list(df.columns)}"
         f"\nlabels -> {pd.unique(df.label)}"
+        f"\nNon indentified genes ranges -> {df.loc[df.label=='gene','name'].isna().sum()}"
     )
     assert not df.sequence.apply(lambda x: len(x) != 50).any()
