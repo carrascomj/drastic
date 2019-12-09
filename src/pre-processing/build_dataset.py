@@ -111,7 +111,10 @@ def classify_genes(df_ranges, feat_table, feature="gene"):
     """
 
     def get_one_id(s, df, id):
-        # might fail sometimes due to overlapping genes
+        """Vectorize feature -> classifiers.
+
+        Might fail sometimes due to overlapping genes and genes that are larger
+        than their corresponding CDS region."""
 
         res = df.loc[(df.start <= s.start) & (df.end >= s.end), id].to_numpy()
         if res.size == 0:
