@@ -11,6 +11,7 @@ from get_labeled_genes import (
     sample_negatives,
     get_partial_ranges,
     extract_windows,
+    filter_ranges,
 )
 from remove_small_genes import remove_small_genes
 
@@ -24,16 +25,16 @@ def pre_process(
     out_file=False,
 ):
     """ Master function
-    
+
     Accepts a `genome_file` FASTA and a `feat_file` TSV and convers it to a pandas
     dataframe.
-    
+
     Parameters
     ----------
     genome_file: string
         path to FASTA file
     feat_file: string
-        path to corresponding NCBI TSV feature file 
+        path to corresponding NCBI TSV feature file
         TODO: specify how to get this file from NCBI
     min_gene_size: int
         minimum gene size accepted as input. Defautl to 200
@@ -41,7 +42,7 @@ def pre_process(
         sep argument to the pandas's read and write functions. Default to "\t"
     out_file: False || string
         if a string is passed, write the dataframe to a file `string`. Default to False
-        
+
     Returns
     -------
     pandas.DataFrame
@@ -97,7 +98,7 @@ def window_pipeline(
     by=None,
 ):
     """Preprocessing pipeline that take equidistant windows in `feat_file`.
-    
+
     Parameters
     ----------
     (...)
