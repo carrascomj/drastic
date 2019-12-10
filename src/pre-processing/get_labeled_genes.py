@@ -307,7 +307,9 @@ def _get_windows(feat_range, window_size=50, num_windows=3):
     size = end - start
     if window_size > size:
         warn(
-            "size_windows parameter (" + str(window_size) + ") is bigger to the size of"
+            "size_windows parameter ("
+            + str(window_size)
+            + ") is bigger than the size of"
             "input range" + str(feat_range) + ". Ignoring that range..."
         )
         return [False]
@@ -323,7 +325,40 @@ def _get_windows(feat_range, window_size=50, num_windows=3):
     return windows
 
 
-def extract_windows(feat_ranges, window_size=50, num_windows=3):
+def _overlap_windows(feat_range, window_size, slide_size):
+    """ Get overlapping windows of lenght `window_size` that are subsets of 
+    `feat_range`. The advancement of the window its given by `slide_size`.
+    
+    Parameters
+    ----------
+    feat_range : numpy.array
+        a numpy array of length 2 (start and end)
+    window_size: int
+        length of the genome under processing
+    slide_size: int
+        difference in positions between one overlapping windown and the next
+        
+    Returns
+    -------
+    list of `num_windows` length of np.arrays (feat_range)
+    """
+    start, end = feat_range
+    size = end - start
+    if window_size > size:
+        warn(
+            "size_windows parameter ("
+            + str(window_size)
+            + ") is bigger than the size of"
+            "input range" + str(feat_range) + ". Ignoring that range..."
+        )
+        return [False]
+    return [
+        np.array([start + i, start + window_size + i])
+        for i in range(0, size - window_size + 1, slide_size)
+    ]
+
+
+def extract_windows(feat_ranges, window_size=50, num_windows=3, overlapping=True):
     """ Get `num_windows` windows of lenght `window_size` that are subsets of `feat_range`
     
     Parameters
@@ -334,16 +369,20 @@ def extract_windows(feat_ranges, window_size=50, num_windows=3):
         length of the genome under processing
     num_windows: int
         number of subsets of the range to retrieve
-        
+    overlapping: bool
+        if True, overlapping method should be applied. In that case, `num_windows` is 
+        the slide size. Default: True.
+
     Returns
     -------
     np.arrays of `num_windows` length of np.arrays (feat_range)
     """
+    cut_range = _overlap_windows if overlapping else _get_windows
     # overcome assymetric ranges stuff
     window_size -= 1
     windows = []
     for rang in feat_ranges:
-        windows += _get_windows(rang, window_size, num_windows)
+        windows += cut_range(rang, window_size, num_windows)
     # filter all cases that the range size was less that window_size (returned False)
     return list(filter(lambda x: x is not False, windows))
 
