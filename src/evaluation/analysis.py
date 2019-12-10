@@ -2,6 +2,10 @@
 
 import torch
 import numpy as np
+import sys
+
+from sklearn.metrics import confusion_matrix
+from torch import Parameter
 
 
 def binary_accuracy(preds, y):
@@ -18,46 +22,27 @@ def binary_accuracy(preds, y):
     return acc
 
 
-def evaluate(model, iterator, criterion):
-    """Evaluation loop.
-
-    Parameters
-    ----------
-    model: torch.Module
-        trained neural network
-    iterator torch.utils.data.DataLoader:
-        dynamic data loader object
-    criterion nn.criterion:
-        criterion used to train the model
-    
-    Return
-    ------
-    loss : float
-    accuracy: float
-    predictions_all: list
-        each prediction of the model
-    labels_all: list
-        each real label of the model (index). Just for convenience, but it
-        could be extracted from the model
-    """
+def evaluate_test(model, iterator, criterion):
     epoch_loss = 0
     epoch_acc = 0
 
     model.eval()
     print("Evaluating...")
     predictions_all = []
-    labels_all = []
 
     for i, batch in enumerate(iterator):
+        if not i % 10:
+            sys.stdout.write(f"\rIteration {i}        ")
+            sys.stdout.flush()
 
         inputs, labels_onehot = batch
 
-        inputs = Parameter(inputs.float(), requires_grad=False)
+        inputs = Parameter(inputs.float(), requires_grad=False).cuda()
 
         predictions = model(inputs)
         labels_idx = torch.LongTensor(
             [np.where(label == 1)[0][0] for label in labels_onehot]
-        )
+        ).cuda()
 
         loss = criterion(predictions, labels_idx)
         acc = binary_accuracy(predictions, labels_onehot)
@@ -65,14 +50,14 @@ def evaluate(model, iterator, criterion):
         epoch_loss += loss.item()
         epoch_acc += acc.item()
         predictions_all.append(predictions)
-        labels_all.append(labels_idx)
     return (
-        epoch_loss / len(iterator),  # loss
-        epoch_acc / len(iterator),  # accuracy
-        predictions_all,  # the predictions of the model
-        labels_all,  # the real labels of the model
+        epoch_loss / len(iterator),
+        epoch_acc / len(iterator),
+        predictions_all,
     )
 
 
-def to_confussion_matrix(preds, y, conf={}):
-    return NotImplementedError("First we need to have the trained models!")
+def to_confussion_matrix(y, preds):
+    """Compute confussion matrix with ground truth `y` of `preds`."""
+    tn, fp, fn, tp = confusion_matrix(y, preds).ravel()
+    return {"TN": tn, "FP": fp, "FN": fn, "TP": tp}

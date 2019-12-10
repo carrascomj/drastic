@@ -1,39 +1,54 @@
 # CLI to evaluate a model
 
+import pandas as pd
 import sys
+import torch
 
 sys.path.append("../src/evaluation")
 sys.path.append("../src/models")
+sys.path.append("../src/post-processing")
 
-from eval_dataset import build_chunks, slide_genome
-from analysis import evaluate, to_confussion_matrix
+from eval_dataset import slide_genome, evaluate_all
+from analysis import to_confussion_matrix
 
 # Default arguments
 expected_args = {
     "--model": None,
     "--genomes": [
-        "0_0_TEST_GCF_000008525.1_ASM852v1_genomic.fna",
-        "1_0_TEST_GCF_000008665.1_ASM866v1_genomic.fna",
-        "2_0_TEST_GCF_000008865.2_ASM886v2_genomic.fna",
-        "3_0_TEST_GCF_000009045.1_ASM904v1_genomic.fna",
-        "4_0_TEST_GCF_000027305.1_ASM2730v1_genomic.fna",
-        "5_0_TEST_GCF_000027325.1_ASM2732v1_genomic.fna",
-        "6_0_TEST_GCF_000027345.1_ASM2734v1_genomic.fna",
-        "7_0_TEST_GCF_000091665.1_ASM9166v1_genomic.fna",
-        "8_0_TEST_GCF_000214725.1_ASM21472v1_genomic.fna",
-        "9_0_TEST_GCF_003015225.1_ASM301522v1_genomic.fna",
+        "../data/train-test_genomes/0_0_TEST_GCF_000008525.1_ASM852v1_genomic.fna",
+        "../data/train-test_genomes/1_0_TEST_GCF_000008665.1_ASM866v1_genomic.fna",
+        "../data/train-test_genomes/2_0_TEST_GCF_000008865.2_ASM886v2_genomic.fna",
+        "../data/train-test_genomes/3_0_TEST_GCF_000009045.1_ASM904v1_genomic.fna",
+        "../data/train-test_genomes/4_0_TEST_GCF_000027305.1_ASM2730v1_genomic.fna",
+        "../data/train-test_genomes/5_0_TEST_GCF_000027325.1_ASM2732v1_genomic.fna",
+        "../data/train-test_genomes/6_0_TEST_GCF_000027345.1_ASM2734v1_genomic.fna",
+        "../data/train-test_genomes/7_0_TEST_GCF_000091665.1_ASM9166v1_genomic.fna",
+        "../data/train-test_genomes/8_0_TEST_GCF_000214725.1_ASM21472v1_genomic.fna",
+        "../data/train-test_genomes/9_0_TEST_GCF_003015225.1_ASM301522v1_genomic.fna",
     ],
     "--feat_files": [
-        "GCA_000008525.1_ASM852v1_feature_table.tsv",
-        "GCA_000008665.1_ASM866v1_feature_table.tsv",
-        "GCA_000008865.2_ASM886v2_feature_table.tsv",
-        "GCA_000009045.1_ASM904v1_feature_table.tsv",
-        "GCA_000027305.1_ASM2730v1_feature_table.tsv",
-        "GCA_000027325.1_ASM2732v1_feature_table.tsv",
-        "GCA_000027345.1_ASM2734v1_feature_table.tsv",
-        "GCA_000091665.1_ASM9166v1_feature_table.tsv",
-        "GCA_000214725.1_ASM21472v1_feature_table.tsv",
-        "GCA_003015225.1_ASM301522v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000008525.1_ASM852v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000008665.1_ASM866v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000008865.2_ASM886v2_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000009045.1_ASM904v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000027305.1_ASM2730v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000027325.1_ASM2732v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000027345.1_ASM2734v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000091665.1_ASM9166v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_000214725.1_ASM21472v1_feature_table.tsv",
+        "../data/train-test_genomes/GCA_003015225.1_ASM301522v1_feature_table.tsv",
+    ],
+    "--indeces": [
+        (0, 833933),
+        (1089200, 2178400),
+        (0, 2749289),
+        (2107803, 4215606),
+        (0, 915069),
+        (290038, 580076),
+        (0, 408197),
+        (832485, 1664970),
+        (0, 1273270),
+        (1787155, 3574310),
     ],
     "--labels": ["intergenic", "gene"],
     "--each": 100,
@@ -66,6 +81,7 @@ def startswith_dict(key, d):
 
 
 def loop_args():
+    """Parse the arguments, with a --arg=val structure."""
     global expected_args
     args = sys.argv[1:]
     for arg in args:
@@ -81,21 +97,22 @@ def loop_args():
     return expected_args
 
 
-def load_model(model_class):
+def load_model(model_class, t=50):
     """Instantiate the `model_class` object and load its trained weights."""
     if model_class.lower() == "convlstm":
         from conv_LSTM import convLSTM, criterion
 
-        model = convLSTM()
+        model = convLSTM(
+            input_dim=1, hidden_dim=34, hidden_out=90, output_dim=2, t=t
+        )
         path = "../data/models/conv_lstm.pt"
-        model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
 
     else:
         raise NotImplementedError(
             "Need to set another step from sequences to indexes using wti.p!"
         )
         path = "../data/models/rnn_embed.pt"
-        from embeddings_LSTM import convLSTM, criterion
+        from embeddings_LSTM import embedLSTM, criterion
 
         model = embedLSTM()
 
@@ -107,20 +124,45 @@ def load_model(model_class):
 
 def apply_evaluation(args):
     """Gather all the functions in the evaluation workflow."""
-    # model and method are treated differently (aren't arguments to build datasets)
+    # model and method are treated differently (aren't arguments to build test)
     model = args["--model"]
-    method = build_chunks if args["--model"] == "build_chuncks" else slide_genome
+    if args["--method"] != "stored":
+        # Evaluation dataset: get all argumetns without the starting "--"
+        kwargs = {
+            k[2:]: v
+            for k, v in args.items()
+            if k not in ["--model", "--method"]
+        }
+        print("Gathering testing dataset...")
+        df_in = slide_genome(**kwargs)
+    else:
+        # generating the whole dataset is quite intensive
+        df_in = pd.read_csv("all_testing.tsv", sep="\t")
 
-    # Evaluation dataset: get all argumetns without the starting "--"
-    kwargs = {k[2:]: v for k, v in args.items() if k not in ["--model", "--method"]}
-    df_in = method(**kwargs)
-    # load the models and evaluate
-    load_model(model)
-    loss, accuracy, predictions_all, labels_all = evaluate(model, df_in, criterion)
-    conf_matrix = confussion_matrix(predictions_all, labels_all)
-    return loss, accuracy, conf_matrix
+    # load the trained neural nets
+    print("Loading neural models...")
+    model, criterion = load_model(model)
+    # raw performance
+    print("Evaluating performance...")
+    valid_acc, rounded_acc, filt_acc, preds, filt_preds, y = evaluate_all(
+        model, df_in, criterion
+    )
+    conf = to_confussion_matrix(y, preds)
+    filt_conf = to_confussion_matrix(y, filt_preds)
+    # apply lowpass to smooth the signals and enhance the performance
+    return valid_acc, rounded_acc, filt_acc, preds, filt_preds, conf, filt_conf
+
+
+def print_evaluation(final):
+    loss, accuracy, accuracy_filter, conf_matrix, conf_matrix_filter = final
+    print(
+        f"Raw output of Neural Network\n{len('Raw output of Neural Network')*'='}"
+        f"\nLoss -> {loss}\nAccuracy -> {accuracy}\nConfusion matrix -> {conf_matrix}"
+        f"\n\nLowpass filter\n{len('Lowpass filter')*'='}"
+        f"\n{accuracy_filter}\nConfusion matrix -> {conf_matrix_filter}"
+    )
 
 
 if __name__ == "__main__":
     evaluated = apply_evaluation(loop_args())
-    print(evaluated)
+    print_evaluation(evaluated)
