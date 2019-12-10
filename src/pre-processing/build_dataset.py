@@ -33,7 +33,11 @@ def map_ranges_2_genes(genome, feat_ranges, label):
 
 
 def map_full_genomes(
-    genome, positive, negative, partial, labels=["gene", "intergenic", "partial"]
+    genome,
+    positive,
+    negative,
+    partial,
+    labels=["gene", "intergenic", "partial"],
 ):
     """ Map the labeled ranges to the genome sequences, getting a dataframe as 
     output.
@@ -87,7 +91,9 @@ def build_padded_seqs(df, N=None):
     elif N < N_data:
         N = N_data
     # 3. transform sequences to fixed-sized padded sequences
-    df_out["padded_sequences"] = df_out.iloc[:, 0].apply(lambda x: pad_seq(x, N))
+    df_out["padded_sequences"] = df_out.iloc[:, 0].apply(
+        lambda x: pad_seq(x, N)
+    )
     return df_out
 
 
@@ -109,32 +115,48 @@ def classify_genes(df_ranges, feat_table, feature="gene"):
     out: pd.DataFrame
         modified `df_ranges`
     """
+    global memo
 
-    def get_one_id(s, df, id):
+    def get_one_id(st, end, df, ids=["name", "product_accession"]):
         """Vectorize feature -> classifiers.
 
         Might fail sometimes due to overlapping genes and genes that are larger
-        than their corresponding CDS region."""
+        than their corresponding CDS region.
+        """
 
-        res = df.loc[(df.start <= s.start) & (df.end >= s.end), id].to_numpy()
-        if res.size == 0:
-            return
-        else:
-            return res[0]
+        global memo
+        if memo[2] < end:
+            # exploit sequentiality of data
+            res = df.loc[
+                (df.start == st) & (df.end >= end), ids + ["end"]
+            ].values
+            if res.size == 0:
+                return
+            else:
+                memo = res[0, :]
+        return [memo[0], memo[1]]
 
-    out = df_ranges.copy()  # remain functional
+    df_out = df_ranges.copy()  # remain functional
+    out = df_out[df_out.label == feature]
+    df = feat_table[feat_table["# feature"] == "CDS"]
     # the informations about name and product is encoded in the CDS; so we
     # need a map from the gene to these identifiers/classes
-    out["name"] = out[out.label == feature].apply(
-        get_one_id, axis=1, df=feat_table[feat_table["# feature"] == "CDS"], id="name"
-    )
-    out["product_accession"] = out[out.label == feature].apply(
-        get_one_id,
-        axis=1,
-        df=feat_table[feat_table["# feature"] == "CDS"],
-        id="product_accession",
-    )
-    return out
+    memo = [None, None, 0]  # some memoization to speed things up
+    names_products = [
+        get_one_id(st, end, df) for st, end in zip(out["start"], out["end"])
+    ]
+    out.loc[:, "name"] = [
+        namprod[0] if namprod is not None else None
+        for namprod in names_products
+    ]
+    out.loc[:, "product_accession"] = [
+        namprod[1] if namprod is not None else None
+        for namprod in names_products
+    ]
+    df_out["name"] = False
+    df_out["product_accession"] = False
+    df_out.loc[df_out.label == feature, :] = out
+    return df_out
 
 
 if __name__ == "__main__":

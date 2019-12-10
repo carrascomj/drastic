@@ -13,7 +13,6 @@ from get_labeled_genes import (
     extract_windows,
     filter_ranges,
 )
-from remove_small_genes import remove_small_genes
 
 
 def pre_process(
@@ -129,7 +128,13 @@ def window_pipeline(
     genome_length = len(genome)
 
     # 2. STANDARIZE DATA
-    df_feat = remove_small_genes(df_feat, min_gene_size)
+    df_feat = df_feat[
+        df_feat.apply(
+            lambda x: x.end - x.start < max_gene_size
+            and x.end - x.start > min_gene_size,
+            axis=1,
+        )
+    ]
 
     # 3. GET RANGES OF FEATURES
     # Test genes
@@ -141,7 +146,9 @@ def window_pipeline(
     negative_ranges = get_negative_ranges(gene_ranges)
     negative = extract_windows(negative_ranges, window_size, num_windows)
     # Test partial genes
-    partial_ranges = get_partial_ranges(gene_ranges, genome_length=genome_length)
+    partial_ranges = get_partial_ranges(
+        gene_ranges, genome_length=genome_length
+    )
     partial = extract_windows(partial_ranges, window_size, num_windows)
 
     # 4. BUILD THE PRE-PROCESSED DATAFRAME
