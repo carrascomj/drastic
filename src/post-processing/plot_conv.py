@@ -19,7 +19,7 @@ from torch.optim import Adam
 def recreate_logo(im_as_var):
     """Create a logo from a optimized Variable."""
     df = pd.DataFrame(
-        im_as_var[0].detach().numpy(), columns=["A", "C", "G", "T"]
+        im_as_var[0].detach().numpy(), columns=["A", "G", "T", "C"]
     )
     # apply softmax to retrieve stochastic vectors
     df = df.apply(lambda x: np.exp(x) / np.sum(np.exp(x)), axis=1)
@@ -47,7 +47,7 @@ class CNNLayerVisualization:
         if not os.path.exists("../generated"):
             os.makedirs("../generated")
 
-    def visualise_layer1D(self):
+    def visualise_layer1D(self, save=True):
         """Plot activations but just for one dimension (four pixels/lettes)."""
         # Generate a random image
         random_seq = np.uint8(np.random.uniform(0, 4, (100, 4)))
@@ -89,7 +89,7 @@ class CNNLayerVisualization:
             optimizer.step()
             # Recreate image
             # Save image
-            if i % 5 == 0:
+            if i % 5 == 0 and save:
                 self.created_image = recreate_logo(var_seq)
                 im_path = (
                     "../generated/layer_vis_l"
